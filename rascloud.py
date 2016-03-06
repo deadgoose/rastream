@@ -12,12 +12,12 @@ HOME_DIR="/home/pi/rastream"
 
 
 class Player:
-
     def __init__(self):
         self.current_stream=None
         self.streams = Queue.Queue()
         t = threading.Thread(target=self.start)
         t.start()
+        self.running = True
         
     def enqueue(self, s):
         self.streams.put(s)
@@ -25,6 +25,8 @@ class Player:
 
     def start(self):
         while(True):
+            #if not self.running:
+            #    return
             s=self.streams.get(block=True)
             self.play_stream(s)
         
@@ -34,7 +36,10 @@ class Player:
         proc.communicate()
         print 'done!'
         
-
+    def turn_off(self):
+        self.stop_stream()
+        self.running=False
+        
     def stop_stream(self):
         if self.current_stream:
             self.current_stream.stop()
