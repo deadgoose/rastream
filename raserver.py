@@ -18,9 +18,11 @@ def hello_world():
 
 @app.route('/skip')
 def skip():
-    player.stop_stream()
-    return redirect(url_for('queue'))
-    
+    if is_logged_in():
+        player.stop_stream()
+        return redirect(url_for('queue'))
+    else:
+        return redirect(url_for('login'))
 @app.route('/queue', methods=['GET', 'POST'])
 def queue():
     if request.method=='POST':

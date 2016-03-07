@@ -3,3 +3,4 @@ client_id
 flask_config
 flask_secret
 *.pyc
+*.db
