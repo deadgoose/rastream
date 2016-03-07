@@ -12,12 +12,43 @@ HOME_DIR="/home/pi/rastream"
 
 
 class Player:
+
+
     def __init__(self):
         self.current_stream=None
         self.streams = Queue.Queue()
         t = threading.Thread(target=self.start)
         t.start()
         self.running = True
+
+    def get_enqueued(self):
+        names = []
+        return names
+        r = self.streams.qsize()
+        for i in range(r):
+            try:
+                names.append(self.streams.queue[i].url)
+            except:
+                return names
+        return names
+    
+    def add_stream(self,url):
+        print 'in parse'
+        sc = client.get("/resolve", url=url)
+        print 'hey'
+        if sc.kind=='playlist':
+            for track in sc.tracks:
+                uri = "/tracks/%s"%track['id']
+                sound = SoundcloudStream()
+                sound.load(uri)
+                self.enqueue(sound)
+        else:
+            uri = "/tracks/%s"%sc.id
+            sound = SoundcloudStream()
+            sound.load(uri)
+            self.enqueue(sound)
+
+        
         
     def enqueue(self, s):
         self.streams.put(s)
@@ -60,15 +91,19 @@ class SoundcloudStream(Stream):
 
         
     def play(self):
-        track = client.get('/resolve', url=self.url)
-        stream_url = client.get(track.stream_url, allow_redirects=False)
-        input_file="%s/download"%HOME_DIR
-        with open(os.devnull, 'w') as fp:
-            self.wget_proc = subprocess.Popen(["wget", stream_url.location, "-O", input_file], stdout=fp)
-        print 'we wget!!'
-        #        with open(os.devnull, 'w') as fp:
-        self.mplayer_proc = subprocess.Popen(["mplayer", "-really-quiet",input_file])
-        return self.mplayer_proc
+        try:
+            track = client.get(self.url)
+            stream_url = client.get(track.stream_url, allow_redirects=False)
+            input_file="%s/download"%HOME_DIR
+            with open(os.devnull, 'w') as fp:
+                self.wget_proc = subprocess.Popen(["wget", stream_url.location, "-O", input_file], stdout=fp)
+            print 'we wget!!'
+            #        with open(os.devnull, 'w') as fp:
+            self.mplayer_proc = subprocess.Popen(["mplayer", "-really-quiet",input_file])
+            return self.mplayer_proc
+        except:
+            self.mplayer_proc = subprocess.Popen(["echo", "cant stream"])
+            return self.mplayer_proc
         
     def stop(self):
         self.wget_proc.kill()

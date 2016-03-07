@@ -15,23 +15,37 @@ f.close()
 def hello_world():
     return "Hello world!"
 
+
+@app.route('/skip')
+def skip():
+    player.stop_stream()
+    return redirect(url_for('queue'))
+    
 @app.route('/queue', methods=['GET', 'POST'])
 def queue():
     if request.method=='POST':
         if is_logged_in():
-            print 'logged in'
-            s = rascloud.SoundcloudStream()
             print request.form['stream']
-            s.load(request.form['stream'])
-            player.enqueue(s)
-        print 'not logged in'
+            player.add_stream(request.form['stream'])
+
                 
-    return '''
+    ret= '''
         <form action="" method="post">
             <p><input type=text name=stream>
             <p><input type=submit value=Queue>
         </form>
+        <a href="/skip">Skip current track</a>
     '''
+    songs = player.get_enqueued()
+    print songs
+    if len(songs) > 0:
+        ret+='''<ol>'''
+        for name in songs:
+            ret+='''<li>'''
+            ret+= name
+            ret+='''</li>'''
+        ret+='''</ol>'''
+    return ret
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -80,6 +94,7 @@ if __name__=="__main__":
     f = open('flask_secret', 'r')
     app.secret_key = f.readline()
     f.close()
+    #app.debug=True
     app.run()
 
 
