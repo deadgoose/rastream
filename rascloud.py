@@ -34,8 +34,20 @@ class Player:
     
     def add_stream(self,url):
         print 'in parse'
+        if 'youtube.com' in url:
+            self.add_youtube(url)
+        elif 'soundcloud.com' in url:
+            self.add_soundcloud(url)
+
+    def add_youtube(self, url):
+        sound = YoutubeStream()
+        sound.load(url)
+        self.enqueue(sound)
+
+        
+
+    def add_soundcloud(self, url):
         sc = client.get("/resolve", url=url)
-        print 'hey'
         if sc.kind=='playlist':
             for track in sc.tracks:
                 uri = "/tracks/%s"%track['id']
@@ -82,7 +94,25 @@ class Stream:
 
     def stop():
         pass
-    
+
+
+class YoutubeStream(Stream):
+
+    def load(self, url):
+        self.name = "yts/"+random_name()
+        self.youtube_dl = subprocess.Popen(["youtube-dl", "-x", "-o",
+                                            "%s.%(ext)s"%name, url])
+        self.name += ".m4a"
+        self.url = url
+
+    def play(self):
+        self.youtube_dl.communicate()
+        self.mplayer_proc = subprocess.Popen(["mplayer", self.name])
+        return self.mplayer_proc
+
+    def stop(self):
+        self.mplayer_proc.kill()
+        
 class SoundcloudStream(Stream):
 
 
@@ -110,6 +140,9 @@ class SoundcloudStream(Stream):
         self.mplayer_proc.kill()
         
 
+
+def random_name():
+    ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
 if __name__=="__main__":
     p = Player()
     s1 = SoundcloudStream()
