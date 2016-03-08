@@ -1,3 +1,5 @@
+import random
+import string
 import threading
 import Queue
 import time
@@ -38,10 +40,12 @@ class Player:
             self.add_youtube(url)
         elif 'soundcloud.com' in url:
             self.add_soundcloud(url)
-
+        elif 'youtu.be' in url:
+            self.add_youtube(url)
     def add_youtube(self, url):
         sound = YoutubeStream()
         sound.load(url)
+        print type(sound)
         self.enqueue(sound)
 
         
@@ -99,14 +103,20 @@ class Stream:
 class YoutubeStream(Stream):
 
     def load(self, url):
-        self.name = "yts/"+random_name()
-        self.youtube_dl = subprocess.Popen(["youtube-dl", "-x", "-o",
-                                            "%s.%(ext)s"%name, url])
-        self.name += ".m4a"
+        self.name = random_name()
+        dl_name='yts/%(title)s.%(ext)s'
+        self.youtube_dl = subprocess.Popen(["youtube-dl", "-x",
+                                            "-o",
+                                            self.name, url],
+                                           stdout=subprocess.PIPE)
         self.url = url
 
     def play(self):
-        self.youtube_dl.communicate()
+        self.name = self.youtube_dl.communicate()[0][:-1]
+        first = self.name.find("Destination")
+        second_first = self.name.find("Destination", first+1)
+        last = self.name.find('\n', second_first)
+        self.name = self.name[second_first+13:last]
         self.mplayer_proc = subprocess.Popen(["mplayer", self.name])
         return self.mplayer_proc
 
@@ -142,7 +152,7 @@ class SoundcloudStream(Stream):
 
 
 def random_name():
-    ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
 if __name__=="__main__":
     p = Player()
     s1 = SoundcloudStream()
