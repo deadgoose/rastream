@@ -4,3 +4,4 @@ flask_config
 flask_secret
 *.pyc
 *.db
+yts/*

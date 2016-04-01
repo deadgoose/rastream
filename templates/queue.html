@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block body %}
+<h2>Queue</h2>
+<form action="volu" method=post>
+  <p><input type=submit value="Increase Volume"></p>
+</form>
+<form action="vold" method=post>
+  <p><input type=submit value="Decrease Volume"></p>
+</form>
+<form action="pause" method=post>
+  <p><input type=submit value="Pause/Play"></p>
+</form>
+<form action="{{ url_for('search') }}" method=post class="search">
+  <p><input type=text name="search"></p>
+  <p><input type=submit value="Search"></p>
+</form>
+<form action="" method="post">
+  <p><input type=text name="stream"></p>
+  <p><input type=submit value="Queue"></p>
+</form>
+<a href="/skip">Skip current track</a>
+<ol>
+  {% for name in songs %}
+  <li>
+    {{ name }}
+  </li>
+  {% endfor %}
+</ol>
+{% endblock %}

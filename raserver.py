@@ -1,5 +1,6 @@
+from searcher import Searcher
 from flask import Flask
-from flask import request, session, redirect, url_for, escape
+from flask import request, session, redirect, url_for, escape, render_template
 import rascloud
 app = Flask(__name__)
 player = rascloud.Player()
@@ -7,14 +8,27 @@ f = open('flask_config', 'r')
 u_and_p = f.readline()
 my_username = u_and_p.split()[0]
 my_password = u_and_p.split()[1]
-print my_password
-print my_username
 f.close()
+
+
+@app.route('/pause', methods=['POST'])
+def pause():
+    player.pause()
+    return redirect(url_for('queue'))
 
 @app.route('/')
 def hello_world():
     return "Hello world!"
 
+@app.route('/volu', methods=['POST'])
+def volu():
+    player.volume(1)
+    return redirect(url_for('queue'))
+
+@app.route('/vold', methods=['POST'])
+def vold():
+    player.volume(-1)
+    return redirect(url_for('queue'))
 
 @app.route('/skip')
 def skip():
@@ -23,6 +37,15 @@ def skip():
         return redirect(url_for('queue'))
     else:
         return redirect(url_for('login'))
+
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    if request.method=='GET':
+        return redirect(url_for('queue'))
+    search = Searcher(request.form['search'])
+    yt_res = search.get_res()
+    return render_template('search.html', yt=yt_res[:5], search=request.form['search'], is_logged_in = is_logged_in())
+    
 @app.route('/queue', methods=['GET', 'POST'])
 def queue():
     if request.method=='POST':
@@ -30,16 +53,23 @@ def queue():
             print request.form['stream']
             player.add_stream(request.form['stream'])
 
-                
+
+    if 'url' in request.args and is_logged_in():
+        print request.args['url']
+        player.add_stream(request.args['url'])
+        return redirect(url_for('queue'))
     ret= '''
+        <form action="search" method="post">
+            <p><input type=text name=search></p>
+            <p><input type=submit value=Search></p>
+        </form>
         <form action="" method="post">
-            <p><input type=text name=stream>
-            <p><input type=submit value=Queue>
+            <p><input type=text name=stream></p>
+            <p><input type=submit value=Queue></p>
         </form>
         <a href="/skip">Skip current track</a>
     '''
     songs = player.get_enqueued()
-    print songs
     if len(songs) > 0:
         ret+='''<ol>'''
         for name in songs:
@@ -47,7 +77,9 @@ def queue():
             ret+= name
             ret+='''</li>'''
         ret+='''</ol>'''
-    return ret
+    #return ret
+    
+    return render_template('queue.html', songs=songs, is_logged_in = is_logged_in())
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -61,14 +93,17 @@ def login():
         else:
             print 'failed'
             error='Invalid login credentials'
-    #render_template('login.html', error=error)
-    return '''
+    if is_logged_in():
+        return redirect(url_for('queue'))
+    return render_template('login.html', error=error, is_logged_in = is_logged_in())
+    ret= '''
         <form action="" method="post">
-            <p><input type=text name=username>
-            <p><input type=text name=password>
-            <p><input type=submit value=Login>
+            <p><input type=text name=username></p>
+            <p><input type=text name=password></p>
+            <p><input type=submit value=Submit></p>
         </form>
     '''
+    return ret
     
 def log_in_user(user):
     session['username'] = request.form['username']
@@ -87,8 +122,7 @@ def valid_login(user, password):
 
 def is_logged_in():
     print 'checking if logged in'
-    print escape(session['username'])
-    if session['username'] == my_username:
+    if 'username' in session and session['username'] == my_username:
         return True
     return False
 
@@ -96,7 +130,7 @@ if __name__=="__main__":
     f = open('flask_secret', 'r')
     app.secret_key = f.readline()
     f.close()
-    #app.debug=True
+    app.debug=True
     app.run()
 
 

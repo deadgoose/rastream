@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block body %}
+<h2>Search for {{ search }}</h2>
+<h4>Click on a song to enqueue</h4>
+<a href="/queue">Back to queue</a>
+<ol>
+  {% for song in yt %}
+  <li>
+    <a href="/queue?url={{ song[0] }}">{{ song[1] }}</a>
+  </li>
+  {% endfor %}
+</ol>
+{% endblock %}
