@@ -2,6 +2,7 @@ from searcher import Searcher
 from flask import Flask
 from flask import request, session, redirect, url_for, escape, render_template
 import rascloud
+import cheat_stream
 app = Flask(__name__)
 player = rascloud.Player()
 f = open('flask_config', 'r')
@@ -10,6 +11,13 @@ my_username = u_and_p.split()[0]
 my_password = u_and_p.split()[1]
 f.close()
 
+@app.route('/vid_stream', methods=['POST'])
+def vid_stream():
+    vid_stream=cheat_stream.get(request.form['vid_stream'])
+    print vid_stream
+    ret= '''
+    <a href='''+vid_stream+'''>click</a>'''
+    return render_template('vid_stream.html', vs=vid_stream)
 
 @app.route('/pause', methods=['POST'])
 def pause():
@@ -130,7 +138,7 @@ if __name__=="__main__":
     f = open('flask_secret', 'r')
     app.secret_key = f.readline()
     f.close()
-    app.debug=True
+    #app.debug=True
     app.run()
 
 

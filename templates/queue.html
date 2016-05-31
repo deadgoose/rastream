@@ -26,4 +26,9 @@
   </li>
   {% endfor %}
 </ol>
+<form action="{{ url_for('vid_stream') }}" method=post class="vid_stream">
+  <p><input type=text name="vid_stream"></p>
+  <p><input type=submit value="Get Stream"></p>
+</form>
 {% endblock %}
+
