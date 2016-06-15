@@ -19,6 +19,10 @@ youtube_dict = {}
 user_agent_proc = subprocess.Popen(["youtube-dl", "--dump-user-agent"], stdout=subprocess.PIPE)
 user_agent = user_agent_proc.communicate()[0][:-1]
 print user_agent
+
+def youtube_dl_proc(url):
+    return subprocess.Popen(["youtube-dl", "--user-agent", user_agent[0][:-1], "--cookies=youtube-dl_mpv.XXXX/cookies", "--get-url", url], stdout=subprocess.PIPE)
+
 class Player:
 
     def pause(self):
@@ -53,20 +57,27 @@ class Player:
     
     def add_stream(self,url):
         print 'in parse'
-        if 'youtube.com' in url:
+        if 'youtube.com' in url or 'youtu.be' in url:
             self.add_youtube(url)
         elif 'soundcloud.com' in url:
             self.add_soundcloud(url)
-        elif 'youtu.be' in url:
-            self.add_youtube(url)
 
     def add_youtube(self, url):
-        sound = YoutubeStream()
-        sound.load(url)
-        print type(sound)
-        self.enqueue(sound)
+        if "list" in url:
+            proc = youtube_dl_proc(url)
+            urls=proc.communicate()[0][:-1].split('\n')
+            proc_titles = subprocess.Popen(["youtube-dl", "-e", url], stdout=subprocess.PIPE)
+            titles = proc_titles.communicate()[0][:-1].split('\n')
+            print titles
+            for i in range(len(titles)):
+                sound = YoutubeStream()
+                sound.load_fast(urls[i], titles[i])
+                self.enqueue(sound)
+        else:
+            sound = YoutubeStream()
+            sound.load(url)
+            self.enqueue(sound)
 
-        
 
     def add_soundcloud(self, url):
         sc = client.get("/resolve", url=url)
@@ -125,6 +136,10 @@ class Stream:
     
 class YoutubeStream(Stream):
 
+    def load_fast(self, url, title):
+        self.name = title
+        self.youtube_dl_url = url
+        
     def load(self, url):
         self.name = self.get_database(url)
         if self.name:
@@ -134,7 +149,7 @@ class YoutubeStream(Stream):
         self.name = soup.find(class_="watch-title").string
         self.url=url
         #self.youtube_dl = subprocess.Popen(["youtube-dl", "--user-agent= -", url], stdout=subprocess.PIPE)
-        self.youtube_dl = subprocess.Popen(["youtube-dl", "--user-agent", user_agent[0][:-1], "--cookies=youtube-dl_mpv.XXXX/cookies", "--get-url", url], stdout=subprocess.PIPE)
+        self.youtube_dl = youtube_dl_proc(url)
         self.youtube_dl_url = None
         t = threading.Thread(target=self.get_youtube_url)
         t.start()
@@ -194,7 +209,7 @@ class YoutubeStream(Stream):
         self.mplayer_proc.kill()
 
     def get_name(self):
-        return self.name[4:]
+        return self.name[:]
 
     def get_database(self, url):
         my_conn = sqlite3.connect('db/example.db')
