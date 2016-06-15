@@ -1,3 +1,6 @@
+
+import requests
+from bs4 import BeautifulSoup
 import random
 import string
 import threading
@@ -11,9 +14,11 @@ import sqlite3
 conn= sqlite3.connect('db/example.db')
 id=open('client_id').readline()
 client=soundcloud.Client(client_id=id)
-HOME_DIR="/home/pi/rastream"
+HOME_DIR="/home/pi/Desktop/rastream"
 youtube_dict = {}
-
+user_agent_proc = subprocess.Popen(["youtube-dl", "--dump-user-agent"], stdout=subprocess.PIPE)
+user_agent = user_agent_proc.communicate()[0][:-1]
+print user_agent
 class Player:
 
     def pause(self):
@@ -125,6 +130,15 @@ class YoutubeStream(Stream):
         if self.name:
             print "already downloaded %s, playing!"%self.name
             return
+        soup=BeautifulSoup(requests.get(url).text, "lxml")
+        self.name = soup.find(class_="watch-title").string
+        self.url=url
+        #self.youtube_dl = subprocess.Popen(["youtube-dl", "--user-agent= -", url], stdout=subprocess.PIPE)
+        self.youtube_dl = subprocess.Popen(["youtube-dl", "--user-agent", user_agent[0][:-1], "--cookies=youtube-dl_mpv.XXXX/cookies", "--get-url", url], stdout=subprocess.PIPE)
+        self.youtube_dl_url = None
+        t = threading.Thread(target=self.get_youtube_url)
+        t.start()
+        """all this stuff is useless now!
         self.name = "    Still loading..."#we chop off the yts unconditionally i.e. 4 chars
         dl_name='yts/%(title)s.%(ext)s'
         self.youtube_dl = subprocess.Popen(["youtube-dl", "-x",
@@ -135,9 +149,16 @@ class YoutubeStream(Stream):
         self.url = url
         print "going to download %s!!!"%url
         t = threading.Thread(target=self.set_name)
-        t.start()
+        t.start()"""
+    def get_youtube_url(self):
+        url=self.youtube_dl.communicate()[0][:-1]
+        self.youtube_dl_url=url
+        
 
+        
     def set_name(self):
+        
+        
         self.name = self.youtube_dl.communicate()[0][:-1]
         if "has already been downloaded" in self.name:
             first = self.name.find("[download]")
@@ -160,11 +181,13 @@ class YoutubeStream(Stream):
         my_conn.close()
         
     def play(self):
-        while(self.name == "    Still loading..."):
+        while(not self.youtube_dl_url):
             time.sleep(1)
             
         print "rascloud is playing %s"%self.name
-        self.mplayer_proc = subprocess.Popen(["mpv", self.name])
+        #self.mplayer_proc = subprocess.Popen(["mpv", self.name])
+        #self.mplayer_proc = subprocess.check_output(["mpv", "-", "--no-video"], stdin=self.youtube_dl.stdout)
+        self.mplayer_proc = subprocess.Popen(["mpv", "--cookies", "--cookies-file=youtube-dl_mpv.XXXX/cookies", "--user-agent", user_agent, "--no-video", self.youtube_dl_url])
         return self.mplayer_proc
 
     def stop(self):

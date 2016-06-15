@@ -139,7 +139,7 @@ if __name__=="__main__":
     app.secret_key = f.readline()
     f.close()
     #app.debug=True
-    app.run()
+    app.run(host='0.0.0.0')
 
 
 
