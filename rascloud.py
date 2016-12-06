@@ -21,7 +21,8 @@ user_agent = user_agent_proc.communicate()[0][:-1]
 print user_agent
 
 def youtube_dl_proc(url):
-    return subprocess.Popen(["youtube-dl", "--user-agent", user_agent[0][:-1], "--cookies=youtube-dl_mpv.XXXX/cookies", "--get-url", url], stdout=subprocess.PIPE)
+    #return subprocess.Popen(["youtube-dl", "--user-agent", user_agent[0][:-1], "--cookies=youtube-dl_mpv.XXXX/cookies", "--get-url", url], stdout=subprocess.PIPE)
+    return subprocess.Popen(["./youtube-dl-url.sh", url], stdout=subprocess.PIPE)
 
 class Player:
 
@@ -63,15 +64,19 @@ class Player:
             self.add_soundcloud(url)
 
     def add_youtube(self, url):
+        print "TEST"
+        print url
         if "list" in url:
             proc = youtube_dl_proc(url)
-            urls=proc.communicate()[0][:-1].split('\n')
+            urls=proc.communicate()[0][:-1].split()
             proc_titles = subprocess.Popen(["youtube-dl", "-e", url], stdout=subprocess.PIPE)
             titles = proc_titles.communicate()[0][:-1].split('\n')
             print titles
+            print len(titles)
+            print len(urls)
             for i in range(len(titles)):
                 sound = YoutubeStream()
-                sound.load_fast(urls[i], titles[i])
+                sound.load_fast(urls[2*(i+1)], titles[i])
                 self.enqueue(sound)
         else:
             sound = YoutubeStream()
@@ -141,16 +146,17 @@ class YoutubeStream(Stream):
         self.youtube_dl_url = url
         
     def load(self, url):
-        self.name = self.get_database(url)
-        if self.name:
-            print "already downloaded %s, playing!"%self.name
-            return
+        #self.name = self.get_database(url)
+        self.youtube_dl_url = None
+        #if self.name:
+        #    print "already downloaded %s, playing!"%self.name
+        #    return
         soup=BeautifulSoup(requests.get(url).text, "lxml")
         self.name = soup.find(class_="watch-title").string
         self.url=url
         #self.youtube_dl = subprocess.Popen(["youtube-dl", "--user-agent= -", url], stdout=subprocess.PIPE)
         self.youtube_dl = youtube_dl_proc(url)
-        self.youtube_dl_url = None
+
         t = threading.Thread(target=self.get_youtube_url)
         t.start()
         """all this stuff is useless now!
@@ -167,13 +173,10 @@ class YoutubeStream(Stream):
         t.start()"""
     def get_youtube_url(self):
         url=self.youtube_dl.communicate()[0][:-1]
-        self.youtube_dl_url=url
-        
+        self.youtube_dl_url=url.split()[1]
 
         
     def set_name(self):
-        
-        
         self.name = self.youtube_dl.communicate()[0][:-1]
         if "has already been downloaded" in self.name:
             first = self.name.find("[download]")

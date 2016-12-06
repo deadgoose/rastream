@@ -56,6 +56,7 @@ def search():
     
 @app.route('/queue', methods=['GET', 'POST'])
 def queue():
+    print 'hello'
     if request.method=='POST':
         if is_logged_in():
             print request.form['stream']
@@ -63,8 +64,11 @@ def queue():
 
 
     if 'url' in request.args and is_logged_in():
-        print request.args['url']
-        player.add_stream(request.args['url'])
+        url = request.args['url']
+        if 'list' in request.args:
+            url+='%list='+request.args['list']
+        print url
+        player.add_stream(url)
         return redirect(url_for('queue'))
     ret= '''
         <form action="search" method="post">
